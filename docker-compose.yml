@@ -1,0 +1,12 @@
+services:
+  memcached:
+    image: memcached
+    cpuset: "0"
+    command:
+      - --conn-limit=1024
+      - --memory-limit=64
+      - --threads=4
+    ports:
+      - "11211:11211"
+
+  
