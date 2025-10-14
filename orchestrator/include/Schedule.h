@@ -8,17 +8,17 @@ class Schedule {
   
   private:
     
-    string versionSchedule;
+    std::string versionSchedule;
     unsigned int lengthSchedule;
   
   public:
     
     // Costructur  
-    Schedule(unsigned int version, unsigned int length);
+    Schedule(std::string version, unsigned int length);
     
     // Getter 
-    unsigned int getVersion();
-    unsigned int getLength();
+    std::string getVersion(void);
+    unsigned int getLength(void);
     
     
 

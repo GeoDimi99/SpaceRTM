@@ -1,4 +1,5 @@
 services:
+  
   memcached:
     image: memcached
     cpuset: "0"
@@ -8,5 +9,10 @@ services:
       - --threads=4
     ports:
       - "11211:11211"
-
   
+  
+  orchestrator:
+    build: orchestrator
+    cpuset: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
