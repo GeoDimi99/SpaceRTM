@@ -19,7 +19,7 @@ CXX_FLAGS := -Wall -Wextra -ggdb
 
 # Library search directories and flags
 EXT_LIB :=
-LDFLAGS :=
+LDFLAGS := -lcurl -lmemcached
 LDPATHS := $(addprefix -L,$(LIB) $(EXT_LIB))
 
 # Include directories
