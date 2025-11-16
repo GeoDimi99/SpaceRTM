@@ -11,29 +11,8 @@ RTJob::RTJob(std::string name, unsigned int limit, std::string rep, unsigned int
   }
   
 
-// Getter 
-std::string RTJob::getNameContainer(void){
-  
-    return nameContainer;
-
-  }
-
-unsigned int RTJob::getLimitTime(void){
-
-    return limitTime;
-  
-  }
-
-
-std::string RTJob::getRepetition(void){
-
-    return repetition;
-
-}
-
-
-int RTJob::getPriority(void){
-
-  return priority;
-
-}
+// Getters 
+std::string RTJob::getNameContainer() const { return nameContainer; }
+unsigned int RTJob::getLimitTime() const { return limitTime; }
+std::string RTJob::getRepetition() const { return repetition; }
+int RTJob::getPriority() const { return priority; }

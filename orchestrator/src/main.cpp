@@ -2,8 +2,10 @@
 #include <unistd.h>
 
 #include <libmemcached/memcached.h>
+
 #include <string>
 #include <map>
+#include <list>
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -39,9 +41,9 @@ int main(int argc, char **argv){
   std::map<std::string, std::string> init_data = {
         {"schedule:version", "1"},
         {"schedule:length", "3"},
-        {"scheduletask:1",  "{\"nametask\":\"init_core\", \"starttime\":\"0\", \"endtime\":\"14\", \"repetition\":\"R1\", \"priority\":\"135\"}"},
-        {"scheduletask:2",  "{\"nametask\":\"comm_proto\", \"starttime\":\"0\", \"endtime\":\"16\", \"repetition\":\"R1\", \"priority\":\"136\"}"},
-        {"scheduletask:3",  "{\"nametask\":\"ctrl_exec\", \"starttime\":\"2\", \"endtime\":\"5\", \"repetition\":\"R1\", \"priority\":\"133\"}"}
+        {"scheduletask:1",  "{\"nametask\":\"init_core\", \"starttime\":0, \"endtime\":14, \"repetition\":\"R1\", \"priority\":135}"},
+        {"scheduletask:2",  "{\"nametask\":\"comm_proto\", \"starttime\":0, \"endtime\":16, \"repetition\":\"R1\", \"priority\":136}"},
+        {"scheduletask:3",  "{\"nametask\":\"ctrl_exec\", \"starttime\":2, \"endtime\":5, \"repetition\":\"R1\", \"priority\":133}"}
   };
 
   // Populate Memcached
@@ -66,27 +68,26 @@ int main(int argc, char **argv){
 
 
   
-  // Init var
+  // Orchestrator Init
   Schedule* schedule = new Schedule();
-  std::cout << "Verison: " << schedule->getVersion() << " Length:" << schedule->getLength() << std::endl;
+  std::cout << "Schedule Verison: " << schedule->getVersion() << " - Length:" << schedule->getLength() << std::endl;
+
+  // Ausiliar Data Structure
+  int currentVersionSchedule = 0;
+  std::list<RTJob> jobList;
 
 
-
+  // Orchestrator wait until there is an avaible schedule
   std::string lookupKey = "schedule:version";
-  
-  
   rc = MEMCACHED_NOTFOUND;
 
   while(rc !=  MEMCACHED_SUCCESS){
 
     // Check if some schedule is stored inside memcached
     rc = memcached_exist(memc, lookupKey.c_str(), lookupKey.length());
-
-
-    if (rc == MEMCACHED_SUCCESS){
-
-      std::cout << "Key exists!" << std::endl;
     
+    if (rc == MEMCACHED_SUCCESS){
+      std::cout << "Key found!" << std::endl;
     } else {
       
       if (rc == MEMCACHED_NOTFOUND)
@@ -99,8 +100,9 @@ int main(int argc, char **argv){
     }
 
   }
-     
-    while(true){
+
+
+  while(true){
 
 
       // Check new schedule version and update 
@@ -108,7 +110,7 @@ int main(int argc, char **argv){
       size_t valueLength;
       uint32_t flags;
       char* ret_val = memcached_get(memc, lookupKey.c_str(), lookupKey.size(), &valueLength, &flags, &rc);
-
+      
       if (rc == MEMCACHED_SUCCESS) {
           newVersionSchedule = ret_val;
           std::cout << lookupKey << " -> " << newVersionSchedule << std::endl;
@@ -116,8 +118,16 @@ int main(int argc, char **argv){
           std::cerr << "Failed to get key '" << lookupKey << "': " << memcached_strerror(memc, rc) << std::endl;
       }
 
-      if( std::stoi(schedule->getVersion()) < std::stoi(newVersionSchedule) ){
-        
+      
+
+      if( /* std::stoi(schedule->getVersion()) */ currentVersionSchedule < std::stoi(newVersionSchedule) ){
+
+        // Update version
+        currentVersionSchedule = std::stoi(newVersionSchedule);
+
+        // Delete the old list
+        jobList.clear();
+
         // There is a new version schedule, so we must update it 
 
         std::string scheduleLengthKey = "schedule:length";
@@ -147,13 +157,23 @@ int main(int argc, char **argv){
 
           rapidjson::Document docRTJob; 
           docRTJob.Parse(jsonRTJob.c_str());
-          if (docRTJob.HasParseError())  
-            std::cerr << "Error parsing JSON!" << std::endl;
+          if (docRTJob.HasParseError()) std::cerr << "Error parsing JSON!" << std::endl;
+
+
+          jobList.push_back(RTJob( docRTJob["nametask"].GetString(), 
+                                    docRTJob["endtime"].GetInt() - docRTJob["starttime"].GetInt(), 
+                                    docRTJob["repetition"].GetString(), 
+                                    docRTJob["priority"].GetInt() ));
           
-          std::cout << "Run nametask: " << docRTJob["nametask"].GetString() << std::endl;
-           
-          
-          std::string imageName = docRTJob["nametask"].GetString();
+        }
+
+      }
+      
+      for (const auto& job : jobList) {
+          std::string imageName = job.getNameContainer();
+          std::string limitTimeMS = std::to_string(job.getLimitTime() * 1000);
+
+          std::cout << "Run nametask: " << imageName << std::endl;
           std::string command =
                     "docker run --rm "
                     "--cpuset-cpus=2 "
@@ -165,7 +185,7 @@ int main(int argc, char **argv){
                     + imageName +
                     " /app/api/rtjob "
                     "--name " + imageName +
-                    " --policy fifo --priority 2 --time 3000";
+                    " --policy fifo --priority 2 --time " + limitTimeMS;
       
           std::cout << "Running: " << command << std::endl;
           int result = system(command.c_str());
@@ -174,31 +194,16 @@ int main(int argc, char **argv){
             std::cout << "Container for " << imageName << " started successfully!" << std::endl;
           else
             std::cerr << "Failed to start container for " << imageName << std::endl;
-
-        
-        }
-
-        // Keep program running
-        while (1) sleep(10);
-
+          
       }
-      
       
 
 
       free(ret_val);
       sleep(1);
 
-    }
+  }
 
-
-
-  
-
-
-
-  // Keep program running
-  while (1) sleep(10);
 
   memcached_free(memc);
   return 0;

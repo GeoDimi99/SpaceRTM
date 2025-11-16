@@ -18,11 +18,11 @@ class RTJob {
     // Costructur  
     RTJob(std::string name, unsigned int limit, std::string rep, unsigned int prior);
     
-    // Getter 
-    std::string getNameContainer(void);
-    unsigned int getLimitTime(void);
-    std::string getRepetition(void);
-    int getPriority(void);
+    // Getters
+    std::string getNameContainer() const;
+    unsigned int getLimitTime() const;
+    std::string getRepetition() const;
+    int getPriority() const;
     
     // Setter
     

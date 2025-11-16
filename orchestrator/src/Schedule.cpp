@@ -2,22 +2,17 @@
 
 
 
-// Constructor
-
+// Constructors
 Schedule::Schedule(void){
-
   versionSchedule_ = "0";
   lengthSchedule_ = 0;
   taskList_ = nullptr;
-
 }
 
 Schedule::Schedule(std::string version, unsigned int length, std::list<RTJob>* list){
-    
     versionSchedule_ = std::move(version);
     lengthSchedule_ = length;
     taskList_ = list;   
-  
   }
 
 
@@ -31,18 +26,14 @@ Schedule::~Schedule() {
     }
 }
   
-// Getter
+// Getters
 std::string Schedule::getVersion(void){
-    
     return versionSchedule_; 
-  
   }
 
 
 unsigned int Schedule::getLength(void){
-    
     return lengthSchedule_;
-  
   }
 
 
