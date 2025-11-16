@@ -30,7 +30,8 @@ int main(int argc, char **argv){
   // Free server list
   memcached_server_list_free(servers); 
   
-  // ----- Memcached initizialization  ---------------
+  /*********  Memcached initizialization  *********/
+  /************************************************/
   
   std::cout << "Start Initialization!" << std::endl;
 
@@ -56,13 +57,14 @@ int main(int argc, char **argv){
   }
   std::cout << "Initialization complete!" << std::endl;
   
+  /************************************************/
+  /******** End Memcached initizialization  *******/
+  
+  
+  
+  
 
-  // ----- End Memcached initizialization  ---------------
-  
-  
-  
-  
-  // ----- Init Orchestrator  -----------
+
   
   // Init var
   Schedule* schedule = new Schedule();
@@ -98,7 +100,6 @@ int main(int argc, char **argv){
 
   }
      
-    // ----------------------- Orchestrator Work ----------------------------------
     while(true){
 
 
@@ -150,10 +151,22 @@ int main(int argc, char **argv){
             std::cerr << "Error parsing JSON!" << std::endl;
           
           std::cout << "Run nametask: " << docRTJob["nametask"].GetString() << std::endl;
+           
           
           std::string imageName = docRTJob["nametask"].GetString();
-          std::string command ="docker run -d --rm --cpuset-cpus=\"2\" --cap-add=SYS_NICE --ulimit rtprio=99 --ulimit rttime=-1 --ulimit memlock=8428281856 --network=host " + imageName;
-
+          std::string command =
+                    "docker run --rm "
+                    "--cpuset-cpus=2 "
+                    "--cap-add=SYS_NICE "
+                    "--ulimit rtprio=99 "
+                    "--ulimit rttime=-1 "
+                    "--ulimit memlock=2048000000 "
+                    "--network=host "
+                    + imageName +
+                    " /app/api/rtjob "
+                    "--name " + imageName +
+                    " --policy fifo --priority 2 --time 3000";
+      
           std::cout << "Running: " << command << std::endl;
           int result = system(command.c_str());
 
@@ -162,9 +175,7 @@ int main(int argc, char **argv){
           else
             std::cerr << "Failed to start container for " << imageName << std::endl;
 
-          // Keep program running
-          while (1) sleep(10);
-          
+        
         }
 
         // Keep program running
@@ -193,6 +204,8 @@ int main(int argc, char **argv){
   return 0;
 
 }
+
+
 
 /*
 
